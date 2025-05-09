@@ -26,7 +26,7 @@ dependencies = [
     "seaborn",
     "tensorflow-probability[jax]",
     "tqdm",
-    "veccs @ git+https://github.com/katzfuss-group/veccs.git",
+    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.1",
 ]
 
 [build-system]

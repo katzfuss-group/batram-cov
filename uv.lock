@@ -170,7 +170,7 @@ requires-dist = [
     { name = "seaborn" },
     { name = "tensorflow-probability", extras = ["jax"] },
     { name = "tqdm" },
-    { name = "veccs", git = "https://github.com/katzfuss-group/veccs.git" },
+    { name = "veccs", git = "https://github.com/katzfuss-group/veccs.git?rev=v0.0.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -2755,7 +2755,7 @@ wheels = [
 [[package]]
 name = "veccs"
 version = "0.0.1"
-source = { git = "https://github.com/katzfuss-group/veccs.git#7ca9a14e680d1ea1f0a0da1fb5cb6455ebdebe49" }
+source = { git = "https://github.com/katzfuss-group/veccs.git?rev=v0.0.1#7c87c6f33e4db031c27784d9379d23ba24bdc95f" }
 dependencies = [
     { name = "faiss-cpu" },
     { name = "numpy" },
