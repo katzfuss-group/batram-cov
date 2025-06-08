@@ -134,7 +134,7 @@ class CovariateTransportMap:
             else:
                 rng_key = jax.random.fold_in(rng_key, i)
                 prediction = sample(rng_key, model, sample_fixed_noise, covar=x)
-            samples.append(prediction._response)
+            samples.append(prediction)
 
         return jnp.stack(samples)
 
@@ -306,20 +306,7 @@ def sample(
         0, len(problems), loop_body, (rng, responses, g, jp)
     )
 
-    samples = []
-    for i in range(len(problems)):
-        nn_idx = problems[i].data.nn_idx.value
-        data = rp.TMDataModule(
-            position=problems[i].data.position.value,
-            response=responses[0, :, i],
-            conditioning_set=responses[0, :, nn_idx],
-            covariates=problems[i].data.covariates.value if covar is None else covar,
-            dist_nn=problems[i].data.dist_nn.value,
-            nn_idx=nn_idx,
-        )
-        samples.append(data)
-
-    return rp.merge_modules(samples)
+    return responses[0]
 
 
 @jax.jit
@@ -486,7 +473,12 @@ def fit_model(
 
         return new_params, new_opt_states, loss
 
-    stopper = partial(early_stopper, warmup_phase=warmup_steps, patience=stopper_patience, tol=stopper_tol)
+    stopper = partial(
+        early_stopper,
+        warmup_phase=warmup_steps,
+        patience=stopper_patience,
+        tol=stopper_tol,
+    )
     scheduler = optax.schedules.warmup_cosine_decay_schedule(
         init_lr, peak_lr, warmup_steps, num_steps, min_lr
     )
@@ -507,7 +499,11 @@ def fit_model(
         mu = fs[0]
         var = fs[1] + jnp.exp(gs[0])
         y_test = score_data.response(np.arange(score_data._response.shape[0]))
-        lp = jax.scipy.stats.norm.logpdf(y_test, loc=mu, scale=jnp.sqrt(var)).sum(0).mean()
+        lp = (
+            jax.scipy.stats.norm.logpdf(y_test, loc=mu, scale=jnp.sqrt(var))
+            .sum(0)
+            .mean()
+        )
         return lp
 
     # initialize tracking
@@ -515,11 +511,9 @@ def fit_model(
         "loss": np.nan * np.zeros(num_steps, dtype=np.float32),
     }
 
-
     if score_data is not None:
         tracker["mean_pred_log_prob"] = np.nan * np.zeros(num_steps, dtype=np.float32)
         # tracker['debugging'] = np.nan * np.zeros(num_steps, dtype=np.float32)
-
 
     fit_pass = True
 
@@ -557,7 +551,7 @@ def fit_model(
                 nnx.update(problem, params, var_mvn_params)
                 break
 
-        desc = ", ".join([f"{k}: {v[epoch]:.3f}" for k, v in tracker.items()]) 
+        desc = ", ".join([f"{k}: {v[epoch]:.3f}" for k, v in tracker.items()])
         # desc += f"{stop_state[:-1]}"
         bar.set_description(desc)
 
@@ -572,7 +566,7 @@ def fit_model(
         problem,
         tracker.get("loss", None),
         -tracker.get("mean_pred_log_prob", None),
-        tracker.get('debugging', None),
+        tracker.get("debugging", None),
         fit_pass,
     )
 
