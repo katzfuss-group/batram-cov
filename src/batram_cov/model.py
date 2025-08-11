@@ -20,9 +20,9 @@ from .tmcov import setup_tm_rp
 from .typing import ArraysProtocol
 from .utils import to_strong_jax_type
 
-type RngKey = jax.Array
-type MVNParams = tuple[jax.Array, jax.Array]
-type FsAndGs = tuple[MVNParams, MVNParams]
+RngKey = jax.Array
+MVNParams = tuple[jax.Array, jax.Array]
+FsAndGs = tuple[MVNParams, MVNParams]
 
 
 class FitStatus(NamedTuple):
