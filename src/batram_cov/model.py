@@ -77,6 +77,41 @@ class CovariateTransportMap:
 
         return
 
+    def update_model_params(self, previous_state: nnx.State, use_data: bool = False):
+        """Update params based on previously saved model state.
+
+        By default, restores a previous parameter state without copying training data
+        (the model state binds training data and parameters in the same object). When
+        `use_data=True`, we replace the entire previous model state with training data
+        and parameters.
+
+        NOTE: This method should only be used in problems that are identically shaped
+        to the task of the current model. This means the same number of spatial
+        locations _and_ the same dimension of covariates. The sample size can change.
+
+        Args:
+        previous_state (nnx.State): some previously stored model state that we wish
+            to reload
+
+        use_data (bool=False): whether to copy training data from the previous state
+        """
+        if use_data:
+            # TODO: Confirm split/merge gives a copy of the data rather than bumping a
+            # ref counter. The goal here was to replace a deep copy by creating a new
+            # object/ref.
+            graph, state = nnx.split(previous_state)
+            self.model = nnx.merge(graph, state)
+            return
+
+        _ = previous_state.pop("data")
+        graph, state = nnx.split(self.model)
+        for k, v in previous_state.items():
+            state[k] = v
+        new_state = nnx.merge(graph, state)
+        self.model = new_state
+
+        return
+
     def fit(
         self,
         num_steps: int = 1000,
