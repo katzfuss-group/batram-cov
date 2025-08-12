@@ -47,6 +47,19 @@ class CovariateTransportMap:
         self.key = jax.random.key(seed) if seed else jax.random.key(time_ns())
 
     def update_train_data(self, new_x: np.ndarray, new_samples: np.ndarray):
+        """Add new_x and new_samples to training data module
+
+        NOTE: The function assumes all necessary preprocessing has been conducted by
+        the user _before_ calling this function. This function only concatenates data
+        into the training module state.
+
+        Args:
+        new_x: an x value with shape (num_samples, x_dim)
+        new_samples: fields with shape (num_locs, num_samples)
+
+        Returns:
+        None
+        """
         graph, state = nnx.split(self.model)
         _response, conditioning_set, covariates, _, nn_idx, _ = state["data"].values()
 
