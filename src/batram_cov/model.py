@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import pickle
 from functools import partial
 from time import time_ns
 from typing import NamedTuple
@@ -8,6 +10,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
+import orbax.checkpoint as ocp
 import tensorflow_probability.substrates.jax as tfp
 from flax import nnx
 from tqdm import tqdm
@@ -45,6 +48,90 @@ class CovariateTransportMap:
         self.model = problems
         self.validation_data = validation_data
         self.key = jax.random.key(seed) if seed else jax.random.key(time_ns())
+
+    def save_model(self, abs_path, checkpointer=None):
+        """Save models using `orbax.checkpoint` module
+
+        NOTES:
+        - This is not well tested, and it may be easier to save models yourself.
+
+        - This function tries to save everything in the path (directory) provided.
+
+        - See the `flax` docs on checkpointing [1,2] for details on how to do this, and
+          note you will want to save both the internal `model` and `validation_data` if
+          it is present. These will need to be stored in separate paths within a larger
+          file path (consider: os.path.join to create subpaths).
+
+        Args:
+        - abs_path (str): an absolute path (e.g. /tmp/models) to a directory for saving
+          checkpoint data
+        - checkpointer (ocp.checkpoint class): a checkpointing class to save weights
+          with. We provide ocp.StandardCheckpointer if no checkpointer is provided.
+
+        Refs:
+        [1] Flax checkpointing: docs https://flax.readthedocs.io/en/latest/guides/checkpointing.html
+        [2] Orbax checkpointing: https://orbax.readthedocs.io/en/latest/guides/checkpoint/orbax_checkpoint_101.html
+        """
+        if not checkpointer:
+            checkpointer = ocp.StandardCheckpointer()
+
+        model_path = os.path.join(abs_path, "model")
+        model_state = nnx.state(self.model)
+        checkpointer.save(model_path, model_state)
+
+        if self.validation_data:
+            validation_path = os.path.join(abs_path, "validation_state")
+            validation_state = nnx.split(self.validation_data)
+            checkpointer.save(validation_path, validation_state)
+
+        key_path = os.path.join(abs_path, "key")
+        with open(key_path, "wb") as f:
+            pickle.dump(self.key, f)
+
+        return
+
+    def load_model(self, abs_path, checkpointer=None):
+        """Load models using `orbax.checkpoint` module
+
+        NOTES:
+        - This is not well tested, and you may be better off implementing it yourself.
+          This was not used in our original experiments because training was cheap.
+
+        - This function tries to load previous model weights, validation_data, and a
+          random key assuming all are present. It does not perform any error handling.
+
+        - See the `flax` docs on checkpointing [1,2] for details on how to do this, and
+          note you will want to load both the internal `model` and `validation_data` if
+          it is present. These will need to be stored in separate paths within a larger
+          file path (consider: os.path.join for subpaths).
+
+        Args:
+        - abs_path (str): an absolute path (e.g. /tmp/models) to a directory for saving
+          checkpoint data
+        - checkpointer (ocp.checkpoint class): a checkpointing class to save weights
+          with. We provide ocp.StandardCheckpointer if no checkpointer is provided.
+
+        Refs:
+        [1] Flax checkpointing: docs https://flax.readthedocs.io/en/latest/guides/checkpointing.html
+        [2] Orbax checkpointing: https://orbax.readthedocs.io/en/latest/guides/checkpoint/orbax_checkpoint_101.html
+        """
+        if not checkpointer:
+            checkpointer = ocp.StandardCheckpointer()
+
+        model_path = os.path.join(abs_path, "model")
+        state = nnx.state(self.model)
+        checkpointer.restore(model_path, state)
+
+        if self.validation_data:
+            validation_path = os.path.join(abs_path, "validation_state")
+            validation_state = nnx.split(self.validation_data)
+            checkpointer.restore(validation_path, validation_state)
+
+        key_path = os.path.join(abs_path, "key")
+        with open(key_path, "bb") as f:
+            pickle.load(f)
+
+        return
 
     def update_train_data(self, new_x: np.ndarray, new_samples: np.ndarray):
         """Add new_x and new_samples to training data module
