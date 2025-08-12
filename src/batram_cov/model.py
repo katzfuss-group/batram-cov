@@ -53,12 +53,12 @@ class CovariateTransportMap:
         new_x = np.broadcast_to(new_x, (covariates.value.shape[0], *new_x.shape))
         new_condsets = new_samples[nn_idx.value].transpose(0, -1, -2)
         x = jnp.concat([covariates.value, new_x], axis=-2)
-        y = jnp.concat([_response.value, new_samples], axis=-2)
+        y = jnp.concat([_response.value, new_samples], axis=-1)
         condsets = jnp.concat([conditioning_set.value, new_condsets], axis=-2)
 
         state["data"]["_response"].value = y
         state["data"]["covariates"].value = x
-        state["data"]["condsets"].value = condsets
+        state["data"]["conditioning_set"].value = condsets
 
         self.model = nnx.merge(graph, state)
 
