@@ -15,6 +15,7 @@ from scipy import linalg
 from sklearn.gaussian_process import kernels
 from tqdm import tqdm
 from veccs import orderings
+from veccs.orderings2 import find_prev_nearest_neighbors
 from veccs.utils import inverse_permutation
 
 __version__ = "0.1.0"
@@ -175,7 +176,7 @@ def gen_data2(
             mean=np.zeros(len(locs)), cov=cov, size=nsamples
         )
 
-    nn = orderings.find_nns_l2(locs, max_nn=max_nn)
+    nn = find_prev_nearest_neighbors(locs, np.arange(locs.shape[0]), max_nn=max_nn)
 
     return Data2(
         locs=locs,
@@ -205,7 +206,7 @@ def gen_data(nus, nsamples=1, nlocs_side=32, noise_var=0.0, max_nn=20, seed=0) -
             mean=np.zeros(len(locs)), cov=cov, size=nsamples
         )
 
-    nn = orderings.find_nns_l2(locs, max_nn=max_nn)
+    nn = find_prev_nearest_neighbors(locs, np.arange(locs.shape[0]), max_nn=max_nn)
 
     # TODO: remove the dict to named tuple conversion below
     return Data(

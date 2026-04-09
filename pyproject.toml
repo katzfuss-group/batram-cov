@@ -18,7 +18,7 @@ dependencies = [
     "jupyter",
     "matplotlib",
     "nbconvert",
-    "numpy<2.0",
+    "numpy",
     "numpyro",
     "optax",
     "pyside6",
@@ -26,7 +26,7 @@ dependencies = [
     "seaborn",
     "tensorflow-probability[jax]",
     "tqdm",
-    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.1",
+    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
 ]
 
 [build-system]
@@ -43,6 +43,7 @@ dev = [
     "ipython",
     "pytest>=8.3.5",
     "jupytext>=1.17.1",
+    "pytest-benchmark>=5.2.3",
 ]
 [tool.basedpyright]
 typeCheckingMode = "basic"

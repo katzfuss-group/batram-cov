@@ -7,6 +7,7 @@ from typing import NamedTuple, TypeVar
 
 import numpy as np
 from veccs import orderings
+from veccs.orderings2 import find_prev_nearest_neighbors
 
 from . import calc_li, gp
 from .data_config_parser import (
@@ -50,7 +51,7 @@ def generate_ordered_locs_and_neighbors(
     locs = gp.make_grid(nlocs=nlocs, ndims=2)
     maxmin_ordering = orderings.maxmin_cpp(locs)
     ordered_locs = locs[maxmin_ordering]
-    nearest_neighbors = orderings.find_nns_l2(ordered_locs, max_nn=max_neighbors)
+    nearest_neighbors = find_prev_nearest_neighbors(ordered_locs, np.arange(ordered_locs.shape[0]), max_nn=max_neighbors)
     return ordered_locs, maxmin_ordering, nearest_neighbors
 
 

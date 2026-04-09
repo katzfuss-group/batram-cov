@@ -70,6 +70,7 @@ from batram_cov.model import (
     build_data_module,
 )
 from veccs import orderings
+from veccs.orderings2 import find_prev_nearest_neighbors
 
 # %% [markdown]
 # ## Implementation details
@@ -148,7 +149,7 @@ class Data:
 # %%
 locs = gp.make_grid(NLOCS, 2)
 maxmin_ordering = orderings.maxmin_cpp(locs)
-nns = orderings.find_nns_l2(locs[maxmin_ordering], NNS)
+nns = find_prev_nearest_neighbors(locs[maxmin_ordering], np.arange(locs.shape[0]), NNS)
 x = np.linspace(np.log(0.25), np.log(4.5), XGRID)
 nus = np.exp(x)
 
