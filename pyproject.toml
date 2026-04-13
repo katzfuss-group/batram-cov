@@ -15,6 +15,7 @@ dependencies = [
     "flax",
     "ipykernel",
     "jax[cuda]==0.5",
+    "jaxtyping>=0.3.9",
     "jupyter",
     "matplotlib",
     "nbconvert",
@@ -82,12 +83,9 @@ exclude = [
 # Enable isort rules
 extend-select = ["I"]
 
-# Same as Black.
 line-length = 88
 indent-width = 4
-
-# Assume Python 3.11
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

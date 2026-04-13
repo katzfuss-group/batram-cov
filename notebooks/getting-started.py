@@ -49,14 +49,16 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
+from veccs import orderings
+from veccs.orderings2 import find_prev_nearest_neighbors
+
 from batram_cov import calc_li, gp
 from batram_cov.model import (
     CovariateTransportMap,
-    create_and_merge_problems,
+    MVNParams,
     build_data_module,
+    create_and_merge_problems,
 )
-from veccs import orderings
-from veccs.orderings2 import find_prev_nearest_neighbors
 
 # %% [markdown]
 # ## Implementation details
@@ -238,7 +240,8 @@ valid_data = jax.tree.map(
     [ locs[maxmin_ordering], nns, li, maxmin_ordering, valid_x, valid_y[..., maxmin_ordering], ],
 )
 valid_data = Data(*valid_data)
-# NOTE: Validation data uses a different instantiation method from training data
+# NOTE: Validation data uses a different instantiation method from training
+# data.
 valid_module = build_data_module(valid_data, sample_idx=0, max_nns=NNS)
 
 # A helpful wrapper to manage state and create bindings to the relevant
@@ -328,6 +331,82 @@ inset = ax.inset_axes([0.5, 0.45, 0.4, 0.3])
 inset.plot(idx, fit.validation_loss[idx], "C1")
 inset.set_title("Val Loss (last 200 epochs)")
 plt.show()
+
+# %% [markdown]
+# ## Predicting values
+#
+# The trained map estimates latent functions $f$ and $g$ as Gaussian processes.
+# Recall $f(w)$ is a function of $w = (x, c)$ for some conditioning set $c$. Due
+# to this, the mean functions are difficult to construct and the visualizations
+# are difficult to interpret (especially as partial functions of only $x$). The
+# $g$ functions are pure functions of $x$ and have a more natural
+# interpretation. We can visualize them like follows:
+
+# %%
+xs = np.log(np.linspace(0.25, 4.5)).reshape(-1, 1)
+
+# NOTE: The return type here is a tuple of 'MVNParam | None, MVNParam'.
+# The 'NoneType' arises when we do not supply y values to the function.
+# Calls to this function must pass by name (x=xs) because it dispatches
+# to multiple internal functions for this behavior. The NoneType we assert
+# for f confirms that we do not receive data for `f` when no response/y value
+# was provided here.
+f, g = model.predict_fs_and_gs(x=xs)
+
+# Assert statements are useful for confirming types (to a language server).
+# We can explicitly print them also:
+assert f is None, f"{type(f).__name__}"
+print(f"Type info `f`: {type(f).__name__}")
+
+# Now info for g: Note that f and g store data in (num_spatial_locs, num_x).
+print(f"Type info `g`: {type(g).__name__} with fields {g._fields}")
+print(f"Field info: {g.mean.shape=}, {g.var.shape=}")
+
+# %% [markdown]
+# Now for the plot. The last code block notes that `g` stores predictions 
+# with shape `(num_spatial_locs, num_x)`, which we document as $(N, n^*)$ 
+# in papers and LaTeX. The same shapes would hold for `f` as predictions 
+# of $f(w^*)$ if samples $y^* \mid x^*$ were provided.
+
+# %%
+plt.plot(xs.squeeze(), g.mean[::8].T, 'C0')
+plt.title(r"Plot of $g(x^*)$ for new values $x^* = \log \nu^*$")
+plt.xlabel(r"$x = \log \nu$")
+plt.ylabel(r"$g(x) = \log \sigma^2(x)$")
+plt.show()
+
+# %% [markdown]
+# The other use case is to pass a `TMDataModule` like our `valid_data` or a held
+# out test dataset to the function. This is shown next with the validation data.
+# Note the change in return type for this function:
+
+# %%
+f, g = model.predict_fs_and_gs(data=valid_module)
+
+print(f"Type info `f`: {type(f).__name__} with fields {f._fields}")
+print(f"Field info: {f.mean.shape=}, {f.var.shape=}")
+
+# Now info for g: Note that f and g store data in (num_spatial_locs, num_x).
+print(f"Type info `g`: {type(g).__name__} with fields {g._fields}")
+print(f"Field info: {g.mean.shape=}, {g.var.shape=}")
+
+# %%
+fig, ax = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
+
+ax[0].plot(valid_x.squeeze(), f.mean[::8].T, 'C0')
+ax[0].set_ylabel(r"$f(x, y_{c}) = \log \sigma^2(x)$")
+
+ax[1].plot(valid_x.squeeze(), g.mean[::8].T, 'C0')
+ax[1].set_xlabel(r"$x = \log \nu$")
+ax[1].set_ylabel(r"$g(x) = \log \sigma^2(x)$")
+
+fig.suptitle(r"Plots of $f(x^*)$ and $g(x^*)$ for $x^* = \log \nu^*$")
+fig.tight_layout()
+
+plt.show()
+
+# %%
+# model.predict_fs_and_gs?
 
 # %% [markdown]
 # ## Sampling new fields

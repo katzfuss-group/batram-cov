@@ -43,9 +43,6 @@ class ParamWithBijector(nnx.Param[T]):
         self.bijector = bijector
 
 
-T = TypeVar("T")
-
-
 class JointParamWithBijector(JointParam[T]):
     def __init__(self, value: T, bijector: tfp.bijectors.Bijector):
         raw_value = bijector.inverse(value)
@@ -118,7 +115,7 @@ class SimpleDataModule(nnx.Module):
         return self._response.value.shape[-1]
 
 
-# FIXME: shoild be part of the tmcov module
+# FIXME: should be part of the tmcov module
 class TMDataModule(nnx.Module):
     """
     Attributes:

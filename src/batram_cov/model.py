@@ -12,6 +12,7 @@ import numpy as np
 import optax
 import orbax.checkpoint as ocp
 import tensorflow_probability.substrates.jax as tfp
+from deprecated import deprecated
 from flax import nnx
 from tqdm import tqdm
 from veccs.orderings import maxmin_cpp
@@ -24,8 +25,11 @@ from .typing import ArraysProtocol
 from .utils import to_strong_jax_type
 
 RngKey = jax.Array
-MVNParams = tuple[jax.Array, jax.Array]
-FsAndGs = tuple[MVNParams, MVNParams]
+
+
+class MVNParams(NamedTuple):
+    mean: np.ndarray | jax.Array
+    var: np.ndarray | jax.Array
 
 
 class FitStatus(NamedTuple):
@@ -37,8 +41,6 @@ class FitStatus(NamedTuple):
     num_neighbors: np.ndarray | None = None  # Compat with old versions
 
 
-# The main things we should instantiate this object with are datasets, not
-# models. Models can be built from data and configuration parameters.
 class CovariateTransportMap:
     def __init__(
         self,
@@ -269,8 +271,74 @@ class CovariateTransportMap:
     def logprob(self, data: rp.TMDataModule) -> jax.Array:
         return log_prob_with_data(self.model, data)
 
-    def predict(self, data: rp.TMDataModule) -> FsAndGs:
-        return predict_fs_and_gs(self.model, data)
+    @deprecated("Use `CovariateTransportMap.predict_fs_and_gs(data=data)`.")
+    def predict(self, data: rp.TMDataModule) -> tuple[MVNParams, MVNParams]:
+        f, g = self.predict_fs_and_gs(data=data)
+        assert isinstance(f, MVNParams) and isinstance(g, MVNParams)
+        return f, g
+
+    def predict_fs_and_gs(
+        self,
+        *,
+        data: rp.TMDataModule | None = None,
+        x: np.ndarray | jax.Array | None = None,
+        y: np.ndarray | jax.Array | None = None,
+    ) -> tuple[MVNParams | None, MVNParams | None]:
+        """Predict fs and gs from `x` or `y`.
+
+        This method wraps `predict_from_new_fields` and `predict_from_score_data`
+        to simplify scoring new fields. The unified interface means that arguments
+        must be passed by name. The two behaviors are defined below.
+
+        **Case 1** `data is not None`: This was the default from the initial
+        release. It is predicated on constructing `data` as a `TMDataModule`,
+        which makes sense in fully automated workflows but can be painful in
+        notebooks or exploratory work. The `Option<MVNParams>` return types
+        never hold in this case, but linters may require proving this. Do this
+        as follows:
+
+        ```python
+        >>> f, g = model.predict(data=prediction_data)
+        >>> assert f is not None and g is not None, (f"{type(f).__name__}, {type(g).__name__}")
+        ```
+
+        **Case 2** `data is None`: This function simplifies getting `f` and `g`
+        from data without building a full `TMDataModule`. There are three
+        possible cases:
+        - If `x` and `y` are both `None` then `f` and `g` are returned over the
+          training data only.
+        - If there is only interest in drawing the `g` functions to visualize the
+          variance part of the model as a function of `x` then `y` can be omitted.
+        - If `x` and `y` are conformably shaped arrays then this is a specialized
+          version of `predict_fs_and_gs_from_data_module` which builds the module
+          internally to make predictions.
+        - See the **Raises** section for error cases.
+
+        **Note**: If `data is None` then the second case is *always* taken.
+
+
+        **Args**:
+        - `rng`: random key for generating samples.
+        - `model`: Fitted model.
+        - `x`: New covariate values `x` to evaluate the model at. Values may be part
+          of training data or disjoint to it.
+        - `y` (Optional): Response fields corresponding to the values of `x`.
+
+        **Raises**:
+        - `ValueError` if
+          - `x is None` but `y is not None` or
+          - `x` and `y` are not conformable in dimension or
+          - `x` or `y` is not an array castable to a `jax.Array`.
+        """
+
+        if data is not None:
+            if not isinstance(data, rp.TMDataModule):
+                raise ValueError(
+                    f"'data' not a TMDataModule. Received {type(data).__name__}."
+                )
+            return predict_fs_and_gs_from_data_module(self.model, data)
+
+        return predict_from_new_fields(self.model, x, y)
 
     def sample(
         self,
@@ -502,16 +570,118 @@ def _fs_gs_one_loc_vmap_jit(g, joint_params, rest, data_g, data_val):
     return apply(g, joint_params, rest, data_g, data_val)
 
 
-def predict_fs_and_gs(
+def predict_fs_and_gs_from_data_module(
     model: rp.HGPIPProblem, score_data: rp.TMDataModule
-) -> tuple[tuple[jax.Array, jax.Array], tuple[jax.Array, jax.Array]]:
+) -> tuple[MVNParams, MVNParams]:
     g, joint_params, rest = nnx.split(model, rp.JointParam, object)
     data_g, data_val = nnx.split(score_data, object)
     fs, gs = _fs_gs_one_loc_vmap_jit(g, joint_params, rest, data_g, data_val)
+    fs = MVNParams(*fs)
+    gs = MVNParams(2 * gs[0], 2 * gs[1])
     return fs, gs
 
 
-# use natgrads by default,
+# TODO: Implement with running notebook.
+def predict_from_new_fields(
+    model: rp.HGPIPProblem,
+    x: np.ndarray | jax.Array | None = None,
+    y: np.ndarray | jax.Array | None = None,
+) -> tuple[MVNParams | None, MVNParams | None]:
+    """Predict fs and gs from `x` or `y`.
+
+    This function simplifies getting `f` and `g` from data without building a
+    full `TMDataModule`. There are three possible cases:
+    - If `x` and `y` are both `None` then `f` and `g` are returned over the
+      training data only.
+    - If there is only interest in drawing the `g` functions to visualize the
+      variance part of the model as a function of `x` then `y` can be omitted.
+    - If `x` and `y` are conformably shaped arrays then this is a specialized
+      version of `predict_fs_and_gs_from_data_module` which builds the module
+      internally to make predictions.
+    - See the **Raises** section for error cases.
+
+    **Args**:
+    - `model`: Fitted model.
+    - `x`: New covariate values `x` to evaluate the model at. Values may be part
+      of training data or disjoint to it.
+    - `y` (Optional): Response fields corresponding to the values of `x`.
+
+    **Raises**:
+    - `ValueError` if
+      - `x is None` but `y is not None` or
+      - `x` and `y` are not conformable in dimension or
+      - `x` or `y` is not an array castable to a `jax.Array`.
+    """
+
+    _arraylike_t = jax.Array | np.ndarray
+
+    if x is None and y is None:
+        f, g = predict_fs_and_gs_from_data_module(model, model.data)
+        return MVNParams(*f), MVNParams(*g)
+
+    elif isinstance(x, _arraylike_t) and isinstance(y, _arraylike_t):
+        x = jax.device_put(x)
+        response = jax.device_put(y)
+
+    elif x is not None and y is None:
+        if not isinstance(x, _arraylike_t):
+            raise ValueError(
+                f"'x' is not a numpy or jax Array. Got {type(x).__name__} and 'y' None."
+            )
+        x = jax.device_put(x)
+        N = model.data._response.shape[0]
+        response = jnp.zeros((x.shape[0], N))
+
+    elif x is None and y is not None:
+        raise ValueError(
+            "got 'x' as None and data 'y'. Provide 'x' conformable with 'y' "
+            "to generate data in this case."
+        )
+
+    else:
+        raise ValueError(
+            f"invalid inputs 'x' and 'y'. Received "
+            f"'x' of type {type(x).__name__} and 'y' of type "
+            f"{type(y).__name__}. Must provide x and y of "
+            "None | np.ndarray | jax.Array."
+        )
+
+    # DEBUG:
+    nn_idx = model.data.nn_idx.value
+    dist_nn = model.data.dist_nn.value
+    mask = nn_idx != -1
+
+    modules = []
+    for i in range(response.shape[-1]):
+        nns_i = nn_idx[i]
+        cond_set = response[:, nns_i] * mask[i]
+        modules.append(
+            rp.TMDataModule(
+                position=jnp.array(i, dtype=jnp.int32),
+                response=response[:, i],
+                conditioning_set=cond_set,
+                covariates=x,
+                dist_nn=dist_nn[i],
+                nn_idx=nn_idx[i],
+            )
+        )
+
+    data = rp.merge_modules(modules)
+
+    f, g = predict_fs_and_gs_from_data_module(model, data)
+
+    # NOTE: These are the only two possible paths.
+    if y is None:
+        f = None
+        assert f is None
+        return f, g
+    else:
+        assert f is not None
+        return f, g
+
+
+# NOTE: This forces using natgrads for training. We found this was substantially
+# faster in pre-release development.
 def fit_model(
     problem: rp.HGPIPProblem,
     score_data: rp.TMDataModule | None = None,
@@ -624,7 +794,7 @@ def fit_model(
         elbo_val, grad = _velbo_natgrad(g, jp, var_mvn_params, gstatic)
 
         updates, opt_ng_state = opt_ng.update(grad, opt_ng_state)
-        var_mvn_params = optax.apply_updates(var_mvn_params, updates)  # type: ignore
+        var_mvn_params = optax.apply_updates(var_mvn_params, updates)
 
         # build return values
         loss = -elbo_val
@@ -655,7 +825,7 @@ def fit_model(
     opt_states = (opt_ng_state, opt_state)
 
     def calc_standard_score(score_data):
-        fs, gs = predict_fs_and_gs(problem, score_data)
+        fs, gs = predict_fs_and_gs_from_data_module(problem, score_data)
         mu = fs[0]
         var = fs[1] + jnp.exp(gs[0])
         y_test = score_data.response(np.arange(score_data._response.shape[0]))

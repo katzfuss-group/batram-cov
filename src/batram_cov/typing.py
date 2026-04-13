@@ -1,75 +1,60 @@
-from typing import NamedTuple, Protocol, TypeVar
+from typing import NamedTuple, Protocol
 
-import jax
+from jaxtyping import Array, Float, Int
 from numpy import ndarray
 
-T = TypeVar("T", jax.Array, ndarray)
 
+class ArraysProtocol(Protocol):
+    """Protocol for arrays to follow.
 
-class ArraysProtocol[T](Protocol):
-    """Protocol for arrays to follow
-
-    Attributes:
-    ---
-    :param:`locs T (N, d)` Ordered locations of samples on a grid
-
-    :param:`nearest_neighbors T (N, m)` Nearest neighbors for
-        building conditioning sets
-
-    :param:`li T (N, )` Distance to nearest neighbor (scaling
-        used by spatial priors)
-
-    :param:`maxmin_permutation T (N, )` The permutation from
-        unordered locs to ordered locs
-
-    :param:`x T (n, p)` The covariate values corresponding to
-        each sample
-
-    :param:`samples T (nreps, n, N)` Climate variables from an
-        unknown distribution, set to match the shape of simulation data
+    **Attributes**:
+    - `locs (N, d)`: Ordered locations of samples on a grid.
+    - `nearest_neighbors (N, max_m)`: Nearest neighbors for building
+      conditioning sets.
+    - `li (N, )`: Distance to nearest neighbor (scaling used by spatial priors).
+    - `maxmin_permutation (N, )`: The permutation from unordered locs to ordered
+      locs.
+    - `x (n, p)`: The covariate values corresponding to each sample.
+    - `samples (nr, n, N)`: Climate variables from an unknown distribution, set
+      to match the shape of simulation data.
     """
 
-    locs: T
-    nearest_neighbors: T
-    li: T
-    maxmin_permutation: T
-    x: T
-    samples: T
+    # NOTE: ruff does not understand these annotations yet.
+    # See https://github.com/astral-sh/ruff/issues/13824 for details, and note
+    # it is an ongoing issue. Have to inline the ignores for now.
+    locs: Float[Array, "N d"]  # noqa: F722
+    nearest_neighbors: Int[Array | ndarray, "N max_m"]  # noqa: F722, 821
+    li: Float[Array | ndarray, "N"]  # noqa: F821
+    maxmin_permutation: Float[Array | ndarray, "N"]  # noqa: F821
+    x: Float[Array | ndarray, "n p"]  # noqa: F722
+    samples: Float[Array | ndarray, "nr n N"]  # noqa: F722
 
 
 class AppData(NamedTuple):
     """Pre-processed CMIP6 data demonstrating the model.
 
-    Attributes:
-    -----------
-    locs: ndarray (N, d)
-        Ordered locations of samples on a grid
-
-    nearest_neighbors: ndarray (N, m)
-        Nearest neighbors for building conditioning sets
-
-    li: ndarray (N, )
-        Distance to nearest neighbor (scaling used by spatial priors)
-
-    maxmin_permutation: ndarray (N, )
-        The permutation from unordered locs to ordered locs
-
-    x: ndarray (n, p)
-        The covariate values corresponding to each sample
-
-    samples: ndarray (nreps, n, N)
-        Climate variables from an unknown distribution, set to match the shape
-        of simulation data
-
-    description: str
+    **Attributes**:
+    - `locs (N, d)`: Ordered locations of samples on a grid.
+    - `nearest_neighbors (N, max_m)`: Nearest neighbors for building
+      conditioning sets.
+    - `li (N, )`: Distance to nearest neighbor (scaling used by spatial priors).
+    - `maxmin_permutation (N, )`: The permutation from unordered locs to ordered
+      locs.
+    - `x (n, p)`: The covariate values corresponding to each sample.
+    - `samples (nr, n, N)`: Climate variables from an unknown distribution, set
+      to match the shape of simulation data.
+    - `description`: A description of the dataset in use
     """
 
-    locs: ndarray
-    nearest_neighbors: ndarray
-    li: ndarray
-    maxmin_permutation: ndarray
-    x: ndarray
-    samples: ndarray
+    # NOTE: ruff does not understand these annotations yet.
+    # See https://github.com/astral-sh/ruff/issues/13824 for details, and note
+    # it is an ongoing issue. Have to inline the ignores for now.
+    locs: Float[Array, "N d"]  # noqa: F722
+    nearest_neighbors: Int[Array | ndarray, "N max_m"]  # noqa: F722, 821
+    li: Float[Array | ndarray, "N"]  # noqa: F821
+    maxmin_permutation: Float[Array | ndarray, "N"]  # noqa: F821
+    x: Float[Array | ndarray, "n p"]  # noqa: F722
+    samples: Float[Array | ndarray, "nr n N"]  # noqa: F722
     description: str
 
 
@@ -81,109 +66,66 @@ class AnomalizedData(NamedTuple):
     deviation fields are provided to reconstruct the original samples as
     needed.
 
-    Attributes:
-    -----------
-    locs: ndarray (N, d)
-        Ordered locations of samples on a grid
-
-    nearest_neighbors: ndarray (N, m)
-        Nearest neighbors for building conditioning sets
-
-    li: ndarray (N, )
-        Distance to nearest neighbor (scaling used by spatial priors)
-
-    maxmin_permutation: ndarray (N, )
-        The permutation from unordered locs to ordered locs
-
-    x: ndarray (n, p)
-        The covariate values corresponding to each sample
-
-    samples: ndarray (nreps, n, N)
-        Climate variables from an unknown distribution, set to match the shape
-        of simulation data
-
-    mean: ndarray (nreps, 1, N)
-        The mean field of the samples, averaged over `n` examples
-
-    sd: ndarray(nreps, 1, N)
-        The standard deviation field of samples, averaged over `n` examples
-
-    description: str
+    **Attributes**:
+    - `locs (N, d)`: Ordered locations of samples on a grid.
+    - `nearest_neighbors (N, max_m)`: Nearest neighbors for building
+      conditioning sets.
+    - `li (N, )`: Distance to nearest neighbor (scaling used by spatial priors).
+    - `maxmin_permutation (N, )`: The permutation from unordered locs to ordered
+      locs.
+    - `x (n, p)`: The covariate values corresponding to each sample.
+    - `samples (nr, n, N)`: Climate variables from an unknown distribution, set
+      to match the shape of simulation data.
+    - `description`: A description of the dataset in use
     """
 
-    locs: ndarray
-    nearest_neighbors: ndarray
-    li: ndarray
-    maxmin_permutation: ndarray
-    x: ndarray
-    samples: ndarray
-    mean: ndarray
-    sd: ndarray
+    # NOTE: ruff does not understand these annotations yet.
+    # See https://github.com/astral-sh/ruff/issues/13824 for details, and note
+    # it is an ongoing issue. Have to inline the ignores for now.
+    locs: Float[Array, "N d"]  # noqa: F722
+    nearest_neighbors: Int[Array | ndarray, "N max_m"]  # noqa: F722, 821
+    li: Float[Array | ndarray, "N"]  # noqa: F821
+    maxmin_permutation: Float[Array | ndarray, "N"]  # noqa: F821
+    x: Float[Array | ndarray, "n p"]  # noqa: F722
+    samples: Float[Array | ndarray, "nr n N"]  # noqa: F722
     description: str
 
 
 class SimulationData(NamedTuple):
     """Data for simulations (generated in Numpy, consumed in JAX).
 
-    Attributes:
-    -----------
-    locs: np.ndarray (N, d)
-        Ordered locations of the samples on a grid
-
-    nearest_neighbors: np.ndarray (N, m)
-        Nearest neighbors for building conditioning sets
-
-    li: np.ndarray (N, )
-        Distance to nearest neighbor (scaling used by spatial priors)
-
-    maxmin_permutation: np.ndarray (N, )
-        The permutation from unordered locs to ordered locs
-
-    inv_maxmin_permutation: np.ndarray (N, )
-        maxmin_permutation inverse (maxmin_permutation.argsort())
-
-    x: np.ndarray (n, p)
-        The covariate values corresponding to each sample
-
-    samples: np.ndarray (nreps, n, N)
-        Sample fields generated from a Gaussian process
-
-    means: np.ndarray (nreps, n, N)
-        Estimands for the sample fields (mean of the GP w/o sampling error)
-
-    conditional_variances: np.ndarray (N, )
-        Conditional variances generated by the data
-
-    noise_var: float
-        Nugget used in generation
-
-    seed: int
-        Random seed used to generate the dataset
-
-    description: str
-        Description of the dataset
-
-    config: dict
-        Configuration used to generate the dataset
-
-    timestamp: str
-        Timestamp of the dataset generation (yyyy-mm-dd hh:mm:ss)
+    **Attributes**:
+    - `locs (N, d)`: Ordered locations of samples on a grid.
+    - `nearest_neighbors (N, max_m)`: Nearest neighbors for building
+      conditioning sets.
+    - `li (N, )`: Distance to nearest neighbor (scaling used by spatial priors).
+    - `maxmin_permutation (N, )`: The permutation from unordered locs to ordered
+      locs.
+    - `x (n, p)`: The covariate values corresponding to each sample.
+    - `samples (nr, n, N)`: Climate variables from an unknown distribution, set
+      to match the shape of simulation data.
+    - `means (n N)`: Oracle estimands for the target field.
+    - `conditional_variances (n N)`: Oracle estimands for the target field.
+    - `noise_var`: Nugget used in generation.
+    - `description`: Description of the dataset.
+    - `seed`: Random seed used to generate the dataset.
+    - `config`: Configuration used to generate the dataset.
+    - `timestamp`: Timestamp of the dataset generation (yyyy-mm-dd hh:mm:ss).
     """
 
-    locs: ndarray
-    nearest_neighbors: ndarray
-    li: ndarray
-    maxmin_permutation: ndarray
-    inv_maxmin_permutation: ndarray
-    x: ndarray
-    samples: ndarray
-    means: ndarray
-    conditional_variances: ndarray
+    locs: Float[Array, "N d"]  # noqa: F722
+    nearest_neighbors: Int[Array | ndarray, "N max_m"]  # noqa: F722, 821
+    li: Float[Array | ndarray, "N"]  # noqa: F821
+    maxmin_permutation: Float[Array | ndarray, "N"]  # noqa: F821
+    x: Float[Array | ndarray, "n p"]  # noqa: F722
+    samples: Float[Array | ndarray, "nr n N"]  # noqa: F722
+    means: Float[Array | ndarray, "n N"]  # noqa: F722
+    conditional_variances: Float[Array | ndarray, "n N"]  # noqa: F722
     noise_var: float
     seed: int
-    description: str
     config: dict
     timestamp: str
+    description: str
 
 
 class SimulatedDatasets(NamedTuple):
