@@ -19,7 +19,7 @@ from veccs.orderings import maxmin_cpp
 from . import natgrad as ngm
 from . import regression_problem as rp
 from .stopping import early_stopper
-from .tmcov import setup_tm_rp
+from .tmcov import KernelF, setup_tm_rp
 from .typing import ArraysProtocol
 from .utils import to_strong_jax_type
 
@@ -34,6 +34,7 @@ class FitStatus(NamedTuple):
     validation_loss: np.ndarray | None
     debugging: np.ndarray | None
     fit_passed: bool
+    num_neighbors: np.ndarray | None = None  # Compat with old versions
 
 
 # The main things we should instantiate this object with are datasets, not
@@ -48,6 +49,12 @@ class CovariateTransportMap:
         self.model = problems
         self.validation_data = validation_data
         self.key = jax.random.key(seed) if seed else jax.random.key(time_ns())
+
+    @property
+    def num_neighbors(self) -> int:
+        assert isinstance(self.model, rp.HGPIPProblem)
+        assert isinstance(self.model.kernel_f, KernelF)
+        return self.model.kernel_f.cs_cutoff().item()
 
     def save_model(self, abs_path, checkpointer=None):
         """Save models using `orbax.checkpoint` module
@@ -662,6 +669,7 @@ def fit_model(
     # initialize tracking
     tracker = {
         "loss": np.nan * np.zeros(num_steps, dtype=np.float32),
+        "num_nbrs": np.zeros(num_steps, dtype=np.uint8),
     }
 
     if score_data is not None:
@@ -687,6 +695,7 @@ def fit_model(
 
         # update tracker and progress bar
         tracker["loss"][epoch] = loss.item()
+        tracker["num_nbrs"][epoch] = problem.kernel_f.cs_cutoff()
 
         if score_data is not None:
             log_scores = log_prob_with_data(problem, score_data)
@@ -715,12 +724,20 @@ def fit_model(
 
     # print(stop_state[:-1])
 
+    mean_pred_log_prob = tracker.get("mean_pred_log_prob", None)
+    if mean_pred_log_prob is not None:
+        mean_pred_log_prob = -mean_pred_log_prob
+    num_nbrs = tracker.get("num_nbrs", None)
+    if isinstance(num_nbrs, np.ndarray):
+        num_nbrs = num_nbrs[:epoch]
+    assert isinstance(num_nbrs, np.ndarray)
     return FitStatus(
         problem,
         tracker.get("loss", None),
-        -tracker.get("mean_pred_log_prob", None),
+        mean_pred_log_prob,
         tracker.get("debugging", None),
         fit_pass,
+        num_nbrs,
     )
 
 

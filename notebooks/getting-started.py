@@ -1,19 +1,5 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.17.1
-#   kernelspec:
-#     display_name: .venv
-#     language: python
-#     name: python3
-# ---
-
 # %% [markdown]
-# # Conditional density estimation of spatial fields 
+# # Conditional density estimation of spatial fields
 
 # %% [markdown]
 # ## Summary
@@ -110,7 +96,7 @@ jax.config.update('jax_platform_name', 'cpu')
 # The constants in the next chunk can be modified to run the notebook with
 # different configurations from the one used. The greatest runtime differences
 # are attributable to `NLOCS`, which sets the number of gridded spatial values
-# to use on each side of a unit square. 
+# to use on each side of a unit square.
 
 # %%
 # NOTE: Global configs parameterizing the data generating process. These
@@ -271,7 +257,7 @@ model = CovariateTransportMap(train_module, seed=0)
 # usually preferable, but increases the complexity of training.
 #
 # The optimization routine can use validation data and includes several choices for
-# configuring the optimizers. These include 
+# configuring the optimizers. These include
 #
 # - early stopping with a patience level and tolerance for noisy gradients,
 # - learning rate scheduling using cosine annealing with a linear warmup period,
@@ -293,19 +279,32 @@ fit = model.fit(
 print(f'fit completed {fit.fit_passed}')
 
 # %% [markdown]
+# NEW: Now monitor the number of nearest neighbors from training. The `fit`
+# holds the number of nearest neighbors over the training run. The `model` also
+# derives the value post-training. Both are shown in the next plot.
+#
+# (NOTE: The `fit` is an option type for compatibility with previous model training.)
+
+# %%
+if fit.num_neighbors is not None:
+  plt.plot(fit.num_neighbors)
+  plt.title(f"# neighbors after training {model.num_neighbors}")
+  plt.show()
+
+# %% [markdown]
 # When running the fit method we see a progress bar that gives some indication of how well the run went,
 # and we return a `fit: FitStatus` object containing the model, the loss functions, and a status flag.
-# The `fit.fit_passed` flag tells us if the run completed successfully, meaning that either we ran for the 
+# The `fit.fit_passed` flag tells us if the run completed successfully, meaning that either we ran for the
 # complete training time or exited early due the early stopping configuration. This flag is `False` if training
 # exits because `nan` values were encountered in the model parameters.
 #
 # We can plot the training and validation loss functions (assuming a validation set was provided). This is a
 # variational method so the training loss function is the evidence lower bound (ELBO) at each training epoch.
-# The validation loss function is the negative log probability 
+# The validation loss function is the negative log probability
 # $$
 #     -\log p(y | x) = -\log \int p(y | f, g) dP(f, g)
 # $$
-# averaged over all of the x values in the validation set. These two functions should have similar scales. We 
+# averaged over all of the x values in the validation set. These two functions should have similar scales. We
 # recommend inspecting the training and validation loss over the entire training period and either using an inset
 # to plot the last few hundred epochs or making a separate plot for this; here we plot an inset.
 
@@ -402,10 +401,10 @@ plt.show()
 # We conclude by demonstrating how to compute log scores (log probabilities).
 # The most obvious application of this is to investigate which covariate $x^*$
 # is compatible with a test field $y^*$. In the following code we generate a new
-# field $y^* | x^*$ using our data generating process and then compare $y^*$ to 
+# field $y^* | x^*$ using our data generating process and then compare $y^*$ to
 # a grid of covariate values. This requires building a new `TMDataModule` object
 # with the gridded $x$ values and copies of the $y$ field that match dimensionally
-# with the grid of $x$ values. Then we can ues `CovariateTransportMap.logprob` to 
+# with the grid of $x$ values. Then we can ues `CovariateTransportMap.logprob` to
 # compute the new log probabilities.
 
 # %%
@@ -427,7 +426,7 @@ for nu in nus:
     logprobs.append(model.logprob(score_module).sum(0))
 
 # %% [markdown]
-# In the previous code we generated new test sets with integer and half integer smoothness values 
+# In the previous code we generated new test sets with integer and half integer smoothness values
 # $\nu = 0.5, \nu = 1.0, \nu = 1.5, \nu = 2.0, \nu = 2.5$. Then we built the `TMDataModule`
 # with a test field $y | \nu$ and a grid of $x = \log \nu$ values to search over. Finally we computed
 # log probabilities and appended the results to a list. Next we plot the results.
@@ -445,27 +444,27 @@ plt.show()
 
 # %% [markdown]
 # In each subplot, the vertical line indicates the true value that a field was generated at.
-# The smooth curve indicates the model's log probability at each value of $\nu = \exp x$ in 
+# The smooth curve indicates the model's log probability at each value of $\nu = \exp x$ in
 # the grid search we defined. We can see that the model log probabilities are maximized at or
-# near the true covariate values, indicating the model can accurately discriminate values of the 
+# near the true covariate values, indicating the model can accurately discriminate values of the
 # covariate after training.
 
 # %% [markdown]
 # ## Appendix: Memory requirements
 #
 # This method uses a large memory footprint and is computationally intensive,
-# so for this example we generate the data on a small spatial grid with 
+# so for this example we generate the data on a small spatial grid with
 # `NLOCS = 16` evenly spaced points on each side of a unit square.
-# This works well for testing with a CPU-only installation of `jax`. 
+# This works well for testing with a CPU-only installation of `jax`.
 # When a GPU is present and training on real data, the datasets can become much
-# larger. 
+# larger.
 #
 # We found in development it was useful to profile the memory using CPU
 # only instantiations to be sure a GPU could fit all of the parameters and data
 # for a training run. Note this requires inspecting the max memory use of every
 # method in the `CovariateTransportMap` object defined later; these are `fit`,
 # `sample`, and `logprob`. To reduce the memory footprint when doing inference
-# we implement the `sample` and `logprob` methods so that they convert data to 
+# we implement the `sample` and `logprob` methods so that they convert data to
 # numpy arrays (on the computer memory instead of device memory) whenever building
 # inference objects. The algorithms will use arrays allocated to accelerated devices
 # but only for the lifetime of the algorithm, then the results are put back in RAM.
