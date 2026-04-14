@@ -22,16 +22,28 @@ uv sync --extra cuda
 
 To add as a dependency in another uv project without cloning:
 
-- CPU only:
+- CPU:
   ```bash
   # CPU
-  uv add "batram-cov[cpu] @ git+https://github.com/katzfuss-group/batram-cov.git"
+  uv add "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git" --extra cpu
   ```
 
 - GPU:
   ```bash
   # GPU
-  uv add "batram-cov[cuda] @ git+https://github.com/katzfuss-group/batram-cov.git"
+  uv add "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git" --extra cuda
+  ```
+
+- CPU (via `uv pip`):
+  ```bash
+  # CPU
+  uv pip install "batram-cov[cpu] @ git+https://github.com/katzfuss-group/batram-cov.git"
+  ```
+
+- GPU (via `uv pip`):
+  ```bash
+  # GPU
+  uv pip install "batram-cov[cuda] @ git+https://github.com/katzfuss-group/batram-cov.git"
   ```
 
 Or using **pip**:
