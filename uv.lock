@@ -223,24 +223,37 @@ name = "batram-cov"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "blackjax" },
     { name = "cartopy" },
-    { name = "flax" },
     { name = "ipykernel" },
-    { name = "jax", extra = ["cuda"] },
-    { name = "jaxtyping" },
     { name = "jupyter" },
     { name = "matplotlib" },
     { name = "nbconvert" },
     { name = "numpy" },
-    { name = "numpyro" },
-    { name = "optax" },
     { name = "pyside6" },
     { name = "scikit-learn" },
     { name = "seaborn" },
-    { name = "tensorflow-probability", extra = ["jax"] },
     { name = "tqdm" },
     { name = "veccs" },
+]
+
+[package.optional-dependencies]
+cpu = [
+    { name = "blackjax" },
+    { name = "flax" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "numpyro" },
+    { name = "optax" },
+    { name = "tensorflow-probability", extra = ["jax"] },
+]
+cuda = [
+    { name = "blackjax" },
+    { name = "flax" },
+    { name = "jax", extra = ["cuda"] },
+    { name = "jaxtyping" },
+    { name = "numpyro" },
+    { name = "optax" },
+    { name = "tensorflow-probability", extra = ["jax"] },
 ]
 
 [package.dev-dependencies]
@@ -254,25 +267,33 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "blackjax" },
+    { name = "blackjax", marker = "extra == 'cpu'" },
+    { name = "blackjax", marker = "extra == 'cuda'" },
     { name = "cartopy" },
-    { name = "flax" },
+    { name = "flax", marker = "extra == 'cpu'" },
+    { name = "flax", marker = "extra == 'cuda'" },
     { name = "ipykernel" },
-    { name = "jax", extras = ["cuda"], specifier = "==0.5" },
-    { name = "jaxtyping", specifier = ">=0.3.9" },
+    { name = "jax", marker = "extra == 'cpu'", specifier = "==0.5" },
+    { name = "jax", extras = ["cuda"], marker = "extra == 'cuda'", specifier = "==0.5" },
+    { name = "jaxtyping", marker = "extra == 'cpu'", specifier = ">=0.3.9" },
+    { name = "jaxtyping", marker = "extra == 'cuda'", specifier = ">=0.3.9" },
     { name = "jupyter" },
     { name = "matplotlib" },
     { name = "nbconvert" },
     { name = "numpy" },
-    { name = "numpyro" },
-    { name = "optax" },
+    { name = "numpyro", marker = "extra == 'cpu'" },
+    { name = "numpyro", marker = "extra == 'cuda'" },
+    { name = "optax", marker = "extra == 'cpu'" },
+    { name = "optax", marker = "extra == 'cuda'" },
     { name = "pyside6" },
     { name = "scikit-learn" },
     { name = "seaborn" },
-    { name = "tensorflow-probability", extras = ["jax"] },
+    { name = "tensorflow-probability", extras = ["jax"], marker = "extra == 'cpu'" },
+    { name = "tensorflow-probability", extras = ["jax"], marker = "extra == 'cuda'" },
     { name = "tqdm" },
     { name = "veccs", git = "https://github.com/katzfuss-group/veccs.git?rev=v0.0.2" },
 ]
+provides-extras = ["cpu", "cuda"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -10,24 +10,16 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "blackjax",
     "cartopy",
-    "flax",
     "ipykernel",
-    "jax[cuda]==0.5",
-    "jaxtyping>=0.3.9",
     "jupyter",
     "matplotlib",
     "nbconvert",
     "numpy",
-    "numpyro",
-    "optax",
     "pyside6",
     "scikit-learn",
     "seaborn",
-    "tensorflow-probability[jax]",
     "tqdm",
-    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
 ]
 
 [build-system]
@@ -36,6 +28,30 @@ build-backend = "hatchling.build"
 
 [tool.hatch]
 metadata.allow-direct-references = true
+
+# NOTE(djd): `veccs` in this table because it otherwise raises errors when
+# syncing the optional dependencies.
+[project.optional-dependencies]
+cpu = [
+    "blackjax",
+    "flax",
+    "jax==0.5",
+    "jaxtyping>=0.3.9",
+    "numpyro",
+    "optax",
+    "tensorflow-probability[jax]",
+    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
+]
+cuda = [
+    "blackjax",
+    "flax",
+    "jax[cuda]==0.5",
+    "jaxtyping>=0.3.9",
+    "numpyro",
+    "optax",
+    "tensorflow-probability[jax]",
+    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
+]
 
 [dependency-groups]
 dev = [
@@ -49,8 +65,8 @@ dev = [
 [tool.basedpyright]
 typeCheckingMode = "basic"
 
+# See https://astral.sh/ruff/configuration for details of config options.
 [tool.ruff]
-# Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
     ".direnv",
@@ -80,50 +96,22 @@ exclude = [
     "venv",
 ]
 
-# Enable isort rules
 extend-select = ["I"]
-
 line-length = 88
 indent-width = 4
 target-version = "py312"
 
 [tool.ruff.lint]
-# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
-# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
-# McCabe complexity (`C901`) by default.
 select = ["E4", "E7", "E9", "F"]
 ignore = []
-
-# Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
-
-# Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.format]
-# Like Black, use double quotes for strings.
 quote-style = "double"
-
-# Like Black, indent with spaces, rather than tabs.
 indent-style = "space"
-
-# Like Black, respect magic trailing commas.
 skip-magic-trailing-comma = false
-
-# Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
-
-# Enable auto-formatting of code examples in docstrings. Markdown,
-# reStructuredText code/literal blocks and doctests are all supported.
-#
-# This is currently disabled by default, but it is planned for this
-# to be opt-out in the future.
 docstring-code-format = false
-
-# Set the line length limit used when formatting code snippets in
-# docstrings.
-#
-# This only has an effect when the `docstring-code-format` setting is
-# enabled.
 docstring-code-line-length = "dynamic"
