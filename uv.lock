@@ -233,7 +233,6 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "seaborn" },
     { name = "tqdm" },
-    { name = "veccs" },
 ]
 
 [package.optional-dependencies]
@@ -245,6 +244,7 @@ cpu = [
     { name = "numpyro" },
     { name = "optax" },
     { name = "tensorflow-probability", extra = ["jax"] },
+    { name = "veccs" },
 ]
 cuda = [
     { name = "blackjax" },
@@ -254,6 +254,7 @@ cuda = [
     { name = "numpyro" },
     { name = "optax" },
     { name = "tensorflow-probability", extra = ["jax"] },
+    { name = "veccs" },
 ]
 
 [package.dev-dependencies]
@@ -291,7 +292,8 @@ requires-dist = [
     { name = "tensorflow-probability", extras = ["jax"], marker = "extra == 'cpu'" },
     { name = "tensorflow-probability", extras = ["jax"], marker = "extra == 'cuda'" },
     { name = "tqdm" },
-    { name = "veccs", git = "https://github.com/katzfuss-group/veccs.git?rev=v0.0.2" },
+    { name = "veccs", marker = "extra == 'cpu'", git = "https://github.com/katzfuss-group/veccs.git?rev=v0.0.2" },
+    { name = "veccs", marker = "extra == 'cuda'", git = "https://github.com/katzfuss-group/veccs.git?rev=v0.0.2" },
 ]
 provides-extras = ["cpu", "cuda"]
 
@@ -300,7 +302,7 @@ dev = [
     { name = "ipython" },
     { name = "jupytext", specifier = ">=1.17.1" },
     { name = "pytest" },
-    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-benchmark", specifier = ">=5.2.3" },
     { name = "ruff" },
 ]

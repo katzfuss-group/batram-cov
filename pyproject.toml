@@ -53,15 +53,6 @@ cuda = [
     "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
 ]
 
-[dependency-groups]
-dev = [
-    "ruff",
-    "pytest",
-    "ipython",
-    "pytest>=8.3.5",
-    "jupytext>=1.17.1",
-    "pytest-benchmark>=5.2.3",
-]
 [tool.basedpyright]
 typeCheckingMode = "basic"
 
@@ -115,3 +106,13 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 docstring-code-format = false
 docstring-code-line-length = "dynamic"
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest",
+    "ipython",
+    "pytest>=9.0.3",
+    "jupytext>=1.17.1",
+    "pytest-benchmark>=5.2.3",
+]

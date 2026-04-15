@@ -60,6 +60,15 @@ Or using **pip**:
   pip install "batram-cov[cuda] @ git+https://github.com/katzfuss-group/batram-cov.git"
   ```
 
+## Development
+
+The dev environment adds dependencies for running the test suite.
+Install those additional dependencies using
+
+```bash
+uv sync --extra cpu --dev   # or replace cpu with cuda for a GPU
+```
+
 ## Getting Started
 
 A [tutorial notebook](notebooks/getting-started.ipynb) demonstrating the covariate extension is available in the notebooks folder.
