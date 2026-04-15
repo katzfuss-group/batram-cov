@@ -4,7 +4,7 @@ import os
 import pickle
 from functools import partial
 from time import time_ns
-from typing import NamedTuple
+from typing import Generator, NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -857,14 +857,14 @@ def fit_model(
         g, var_mvn_params, params, gstate = nnx.split(
             problem, rp.VarMVNPar, nnx.Param, object
         )
-        (params, var_mvn_params), opt_states, loss = update_jitted(
+        (params, var_mvn_params), opt_states, train_loss = update_jitted(
             epoch, g, params, var_mvn_params, gstate, opt_states
         )
 
         nnx.update(problem, params, var_mvn_params)
 
         # update tracker and progress bar
-        tracker["loss"][epoch] = loss.item()
+        tracker["loss"][epoch] = train_loss.item()
         tracker["num_nbrs"][epoch] = problem.kernel_f.cs_cutoff()
 
         if score_data is not None:
@@ -888,24 +888,30 @@ def fit_model(
         bar.set_description(desc)
 
         # check for nan loss
-        if np.isnan(loss):
+        if np.isnan(train_loss):
             fit_pass = False
             break
 
     # print(stop_state[:-1])
 
-    mean_pred_log_prob = tracker.get("mean_pred_log_prob", None)
+    def _extract_from_tracker(*keys: str) -> Generator[np.ndarray | None]:
+        for key in keys:
+            val = tracker.get(key, None)
+            if isinstance(val, np.ndarray):
+                val = val[:epoch]
+            yield val
+
+    train_loss, mean_pred_log_prob, num_nbrs, debugging = _extract_from_tracker(
+        "loss", "mean_pred_log_prob", "num_nbrs", "debugging"
+    )
+    # NOTE: mean_pred_log_prob is the validation loss.
     if mean_pred_log_prob is not None:
-        mean_pred_log_prob = -mean_pred_log_prob
-    num_nbrs = tracker.get("num_nbrs", None)
-    if isinstance(num_nbrs, np.ndarray):
-        num_nbrs = num_nbrs[:epoch]
-    assert isinstance(num_nbrs, np.ndarray)
+        validation_loss = -mean_pred_log_prob
     return FitStatus(
         problem,
-        tracker.get("loss", None),
-        mean_pred_log_prob,
-        tracker.get("debugging", None),
+        train_loss,
+        validation_loss,
+        debugging,
         fit_pass,
         num_nbrs,
     )
