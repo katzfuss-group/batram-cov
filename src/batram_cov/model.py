@@ -283,7 +283,7 @@ class CovariateTransportMap:
         data: rp.TMDataModule | None = None,
         x: np.ndarray | jax.Array | None = None,
         y: np.ndarray | jax.Array | None = None,
-    ) -> tuple[MVNParams | None, MVNParams | None]:
+    ) -> tuple[MVNParams | None, MVNParams]:
         """Predict fs and gs from `x` or `y`.
 
         This method wraps `predict_from_new_fields` and `predict_from_score_data`
