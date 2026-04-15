@@ -221,33 +221,27 @@ class CovariateTransportMap:
     ) -> FitStatus:
         """fit covariate transport map using initialized data
 
-        Arguments:
-        ---
-        :param:`num_steps (int = 1000)`
-            The number of post-warmup steps to train the model for
-        :param:`warmup_steps (int = 200)`
-            The number of warmup steps to take before training
-        :param:`init_lr (float = 0.0001)`
-            The initial learning rate to use during warmup training
-        :param:`peak_lr (float = 0.03)`
-            The leak learning rate to apply during training
-        :param:`min_lr (float = 0.00001)`
-            The minimum learning rate to use with schedling
-        :param:`num_epochs_only_var_par (float = 0)`
-            The number of epochs to train only variational parameters for
-        :param:`stopper_patience (int = 30)`
-            The patience for an early stopper
+        **Args**:
+        - `num_steps (default=1000)`: The number of post-warmup steps to train
+          the model for.
+        - `warmup_steps (int = 200)`: The number of warmup steps to take before
+          training.
+        - `init_lr (float = 0.0001)` The initial learning rate to use during
+          warmup training.
+        - `peak_lr (float = 0.03)`: The leak learning rate to apply during
+          training.
+        - `min_lr (float = 0.00001)`: The minimum learning rate to use with
+          schedling.
+        - `num_epochs_only_var_par (float = 0)` The number of epochs to train
+          only variational parameters for.
+        - `stopper_patience (int = 30)` The patience for an early stopper.
 
-        Returns:
-        ---
-        :param:`model (rp.HGPIPProblem)`
-            The fitted model
-        :param:`loss (np.ndarray)`
-            The training (elbo) loss
-        :param:`validation_loss (np.ndarray)`
-            Prediction loss on the validation set
-        :param:`fit_failed (bool)`
-            Whether or not the fit failed
+        **Returns**:
+        - `model`: The fitted model.
+        - `loss`: The training (elbo) loss.
+        - validation_loss`: Prediction loss on the validation set.
+        - `fit_failed`: Whether or not the fit failed.
+        - `num_neighbors`: A trace of the number of nearest neighbors.
         """
 
         fit_status = fit_model(
@@ -347,6 +341,28 @@ class CovariateTransportMap:
         seed: int | None = None,
         sample_fixed_noise: bool = False,
     ) -> jax.Array:
+        """Sample an hgp regression at one location.
+
+        **Args**:
+          - `covar`: New data locations to draw samples at.
+          - `rng`: Key for generating samples.
+          - `model`: The fitted model to sample from.
+          - `num_samples (default=1)`: The number of samples to draw at each `x`.
+          - `seed (default=None)`: Random seed for sampling.
+          - `sample_fixed_noise (default=False)`: Whether to fix the noise
+            across samples or draw different samples for each x.
+
+        **Returns**:
+          - `samples`: `Shape(x.shape[0], num_samples, num_spatial_locations)`.
+            The number of samples drawn ordered by the covariate value, the
+            number of samples, and the number of spatial locations.
+
+        **Note**:
+          - The returned samples remain maxmin ordered, just like the training
+            data. If the maxmin ordering is `maxmin_ordering` then the ordering
+            can be reversed using `samples[..., maxmin_ordering.argsort()]`.
+            Then reshape the points into whatever the appropriate grid shape is.
+        """
         if seed:
             rng_key = jax.random.key(seed)
         else:
@@ -456,22 +472,6 @@ def sample_location(
     sample_fixed_noise: bool,
     x: None | jax.Array = None,
 ) -> jax.Array:
-    """sample an hgp regression at one location.
-
-    Arguments
-    ---
-    :param:`rng (jax.Array)` key for generating samples
-
-    :param:`problem (rp.HGPIPProblem)` fitted model
-
-    :param:`responses (jax.Array)` empty buffer to store results in
-
-    :param:`sample_fixed_noise (bool)` whether to fix the noise across samples
-        or draw different samples for each x
-
-    :param:`x (jax.Array | None = None)` new data locations to draw samples at.
-        If `None` then use the training data
-    """
     x = problem.data.covariates.value if x is None else jnp.asarray(x, jnp.float32)
     nn_idx = problem.data.nn_idx.value
     cond_set = responses[0][:, nn_idx]
@@ -510,6 +510,20 @@ def sample(
     sample_fixed_noise: bool = False,
     covar: None | jax.Array = None,
 ) -> rp.TMDataModule:
+    """Sample an hgp regression at one location.
+
+    **Args**:
+      - `rng`: Key for generating samples.
+      - `model`: The fitted model to sample from.
+      - `sample_fixed_noise`: Whether to fix the noise across samples or draw
+        different samples for each x.
+      - `covar (default=None)`: New data locations to draw samples at. If `None`
+        then use the training data.
+
+    **Returns**:
+      - `samples`: An array of samples with
+        `Shape(x.shape[0] | 1, num_samples, num_spatial_locations)`.
+    """
     problems = rp.split_module(model)
 
     if covar is not None:
@@ -767,7 +781,7 @@ def fit_model(
 
         # vmap updates
         def _vloss(params):
-            m = nnx.merge(g, params, var_mvn_params, gstatic)
+            m = nnx.merge(g, params, var_mvn_params, gstatic)  # type: ignore
             ig, jp, rs = nnx.split(m, rp.JointParam, object)
             vloss = jax.vmap(
                 lambda ig, jp, r: nnx.merge(ig, jp, r).loss(None), (None, None, 0)
@@ -776,6 +790,7 @@ def fit_model(
             # independent of the number of locations
             return vloss(ig, jp, rs).mean()
 
+        # Deferred defn, but used in _param_update
         ps = params
         opt_state = opt_states[1]
 
