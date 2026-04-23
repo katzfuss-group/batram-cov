@@ -10,16 +10,16 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "cartopy",
-    "ipykernel",
-    "jupyter",
-    "matplotlib",
-    "nbconvert",
+    "flax",
+    "jax==0.5",
+    "jaxtyping>=0.3.9",
     "numpy",
-    "pyside6",
-    "scikit-learn",
+    "numpyro",
+    "optax",
     "seaborn",
+    "tensorflow-probability",
     "tqdm",
+    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
 ]
 
 [build-system]
@@ -32,21 +32,19 @@ metadata.allow-direct-references = true
 # NOTE(djd): `veccs` in this table because it otherwise raises errors when
 # syncing the optional dependencies.
 [project.optional-dependencies]
-cpu = [
+experiments = [
     "blackjax",
-    "flax",
-    "jax==0.5",
-    "jaxtyping>=0.3.9",
-    "numpyro",
-    "optax",
-    "tensorflow-probability[jax]",
-    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
+    "cartopy",
+    "ipykernel",
+    "jupyter",
+    "nbconvert",
+    "matplotlib",
+    "pyside6",
 ]
 cuda = [
     "blackjax",
     "flax",
     "jax[cuda]==0.5",
-    "jaxtyping>=0.3.9",
     "numpyro",
     "optax",
     "tensorflow-probability[jax]",

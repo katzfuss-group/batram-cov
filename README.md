@@ -14,51 +14,38 @@ Make sure [uv](https://docs.astral.sh/uv/) is installed, then clone the reposito
 
 ```bash
 # CPU
-uv sync --extra cpu
+uv sync
 
 # GPU
 uv sync --extra cuda
 ```
 
+The `experiments` extra adds notebook and visualization dependencies (cartopy, jupyter, matplotlib, etc.):
+
+```bash
+uv sync --extra experiments          # CPU + notebooks
+uv sync --extra cuda --extra experiments  # GPU + notebooks
+```
+
 To add as a dependency in another uv project without cloning:
 
-- CPU:
-  ```bash
-  # CPU
-  uv add "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git" --extra cpu
-  ```
+```bash
+# CPU
+uv add "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git"
 
-- GPU:
-  ```bash
-  # GPU
-  uv add "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git" --extra cuda
-  ```
+# GPU
+uv add "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git" --extra cuda
+```
 
-- CPU (via `uv pip`):
-  ```bash
-  # CPU
-  uv pip install "batram-cov[cpu] @ git+https://github.com/katzfuss-group/batram-cov.git"
-  ```
+Or via `uv pip` / `pip`:
 
-- GPU (via `uv pip`):
-  ```bash
-  # GPU
-  uv pip install "batram-cov[cuda] @ git+https://github.com/katzfuss-group/batram-cov.git"
-  ```
+```bash
+# CPU
+uv pip install "batram-cov @ git+https://github.com/katzfuss-group/batram-cov.git"
 
-Or using **pip**:
-
-- CPU:
-  ```bash
-  # CPU
-  pip install "batram-cov[cpu] @ git+https://github.com/katzfuss-group/batram-cov.git"
-  ```
-
-- GPU:
-  ```bash
-  # GPU
-  pip install "batram-cov[cuda] @ git+https://github.com/katzfuss-group/batram-cov.git"
-  ```
+# GPU
+uv pip install "batram-cov[cuda] @ git+https://github.com/katzfuss-group/batram-cov.git"
+```
 
 ## Development
 
@@ -66,7 +53,8 @@ The dev environment adds dependencies for running the test suite.
 Install those additional dependencies using
 
 ```bash
-uv sync --extra cpu --dev   # or replace cpu with cuda for a GPU
+uv sync --dev          # CPU
+uv sync --extra cuda --dev  # GPU
 ```
 
 ## Getting Started
