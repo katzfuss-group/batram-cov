@@ -37,12 +37,17 @@
 # Details of the model may be found in a forthcoming paper. This notebook
 # provides one demonstration of the method on a simulated training set.
 
+# %% [markdown]
+# A script version of this notebook is used for development and to quickly check
+# that changes remain runnable. The next cell applies development changes.
+
 # %%
 # automatic reload
 # %load_ext autoreload
 # %autoreload 2
 
 # %%
+# ruff: noqa: I001
 from dataclasses import dataclass
 
 import jax
@@ -55,10 +60,24 @@ from veccs.orderings2 import find_prev_nearest_neighbors
 from batram_cov import calc_li, gp
 from batram_cov.model import (
     CovariateTransportMap,
-    MVNParams,
     build_data_module,
     create_and_merge_problems,
 )
+
+# %%
+# fmt: off
+import os  # noqa: E402
+if "DEV" in os.environ:
+    class SavesFig:
+        def __init__(self): self.counter = 0
+        def __call__(self):
+            self.counter += 1
+            plt.savefig(f"getting-started-fig-{self.counter}.png", dpi=150)
+            plt.close()
+    show_fig = SavesFig()
+else:
+    show_fig = plt.show
+# fmt: on
 
 # %% [markdown]
 # ## Implementation details
@@ -72,11 +91,6 @@ from batram_cov.model import (
 # powerful automatic differentiation library. Another important feature is its
 # speed: JAX code gets JIT compiled at runtime using Google's XLA compiler,
 # leading to highly optimized hardware instructions.
-
-# %%
-# NOTE: Configure jax to run with a cpu and some number of cores instead of using a gpu for fast prototyping
-jax.config.update('jax_platform_name', 'cpu')
-
 
 # %% [markdown]
 # ## Configuration
@@ -110,6 +124,7 @@ NNS = 30
 NUM_DATA_SAMPLES = 5
 # Several code chunks depend on this staying hard coded. Modify it with caution.
 XGRID = 100
+
 
 # %%
 @dataclass
@@ -168,7 +183,7 @@ for j, nu in enumerate(*np.c_[*nus[::10], nus[-1]]):
 
 cax = fig.add_axes([0.125, 0.075, 0.775, 0.025])
 cbar = fig.colorbar(_, cax, orientation="horizontal")
-plt.show()
+show_fig()
 
 # %% [markdown]
 # ## Train-validation splits
@@ -180,7 +195,7 @@ plt.show()
 # %%
 idx = set(range(XGRID))
 train_idx = list(range(0, XGRID, 2))
-train_idx.append(XGRID-1)
+train_idx.append(XGRID - 1)
 valid_idx = list(idx.difference(train_idx))
 
 train_x = x[train_idx, None]
@@ -219,7 +234,14 @@ li = calc_li(locs[maxmin_ordering], nns)
 # Put all numpy arrays on gpus as jax arrays
 train_data = jax.tree.map(
     lambda a: jax.device_put(a),
-    [ locs[maxmin_ordering], nns, li, maxmin_ordering, train_x, train_y[..., maxmin_ordering], ],
+    [
+        locs[maxmin_ordering],
+        nns,
+        li,
+        maxmin_ordering,
+        train_x,
+        train_y[..., maxmin_ordering],
+    ],
 )
 train_data = Data(*train_data)
 # NOTE: creates the hgpip problems with training data bound to them
@@ -237,7 +259,14 @@ train_module = create_and_merge_problems(
 # Put all numpy arrays on gpus as jax arrays
 valid_data = jax.tree.map(
     lambda a: jax.device_put(a),
-    [ locs[maxmin_ordering], nns, li, maxmin_ordering, valid_x, valid_y[..., maxmin_ordering], ],
+    [
+        locs[maxmin_ordering],
+        nns,
+        li,
+        maxmin_ordering,
+        valid_x,
+        valid_y[..., maxmin_ordering],
+    ],
 )
 valid_data = Data(*valid_data)
 # NOTE: Validation data uses a different instantiation method from training
@@ -277,9 +306,9 @@ fit = model.fit(
     peak_lr=0.1,
     warmup_steps=100,
     stopper_patience=50,
-    stopper_tol=.1,
+    stopper_tol=0.1,
 )
-print(f'fit completed {fit.fit_passed}')
+print(f"fit completed {fit.fit_passed}")
 
 # %% [markdown]
 # NEW: Now monitor the number of nearest neighbors from training. The `fit`
@@ -290,9 +319,9 @@ print(f'fit completed {fit.fit_passed}')
 
 # %%
 if fit.num_neighbors is not None:
-  plt.plot(fit.num_neighbors)
-  plt.title(f"# neighbors after training {model.num_neighbors}")
-  plt.show()
+    plt.plot(fit.num_neighbors)
+    plt.title(f"# neighbors after training {model.num_neighbors}")
+    show_fig()
 
 # %% [markdown]
 # When running the fit method we see a progress bar that gives some indication of how well the run went,
@@ -330,7 +359,7 @@ idx = np.arange(last_step - 200, last_step)
 inset = ax.inset_axes([0.5, 0.45, 0.4, 0.3])
 inset.plot(idx, fit.validation_loss[idx], "C1")
 inset.set_title("Val Loss (last 200 epochs)")
-plt.show()
+show_fig()
 
 # %% [markdown]
 # ## Predicting values
@@ -363,17 +392,17 @@ print(f"Type info `g`: {type(g).__name__} with fields {g._fields}")
 print(f"Field info: {g.mean.shape=}, {g.var.shape=}")
 
 # %% [markdown]
-# Now for the plot. The last code block notes that `g` stores predictions 
-# with shape `(num_spatial_locs, num_x)`, which we document as $(N, n^*)$ 
-# in papers and LaTeX. The same shapes would hold for `f` as predictions 
+# Now for the plot. The last code block notes that `g` stores predictions
+# with shape `(num_spatial_locs, num_x)`, which we document as $(N, n^*)$
+# in papers and LaTeX. The same shapes would hold for `f` as predictions
 # of $f(w^*)$ if samples $y^* \mid x^*$ were provided.
 
 # %%
-plt.plot(xs.squeeze(), g.mean[::8].T, 'C0')
+plt.plot(xs.squeeze(), g.mean[::8].T, "C0")
 plt.title(r"Plot of $g(x^*)$ for new values $x^* = \log \nu^*$")
 plt.xlabel(r"$x = \log \nu$")
 plt.ylabel(r"$g(x) = \log \sigma^2(x)$")
-plt.show()
+show_fig()
 
 # %% [markdown]
 # The other use case is to pass a `TMDataModule` like our `valid_data` or a held
@@ -393,17 +422,17 @@ print(f"Field info: {g.mean.shape=}, {g.var.shape=}")
 # %%
 fig, ax = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
 
-ax[0].plot(valid_x.squeeze(), f.mean[::8].T, 'C0')
+ax[0].plot(valid_x.squeeze(), f.mean[::8].T, "C0")
 ax[0].set_ylabel(r"$f(x, y_{c}) = \log \sigma^2(x)$")
 
-ax[1].plot(valid_x.squeeze(), g.mean[::8].T, 'C0')
+ax[1].plot(valid_x.squeeze(), g.mean[::8].T, "C0")
 ax[1].set_xlabel(r"$x = \log \nu$")
 ax[1].set_ylabel(r"$g(x) = \log \sigma^2(x)$")
 
 fig.suptitle(r"Plots of $f(x^*)$ and $g(x^*)$ for $x^* = \log \nu^*$")
 fig.tight_layout()
 
-plt.show()
+show_fig()
 
 # %%
 # model.predict_fs_and_gs?
@@ -472,7 +501,7 @@ cax = fig.add_axes([0.06, 0.05, 0.89, 0.03])
 cbar = fig.colorbar(_, cax, orientation="horizontal")
 left.suptitle("data generating process")
 right.suptitle("model")
-plt.show()
+show_fig()
 
 # %% [markdown]
 # ## Logscores
@@ -492,11 +521,13 @@ new_x = np.linspace(np.log(0.25), np.log(4.5), 73).reshape(-1, 1)
 logprobs = []
 for nu in nus:
     new_y = dgp.sample(n=1, nu=nu, seed=42)[0]
-    new_y = np.stack([new_y for _ in range(new_x.shape[0])], axis=0).reshape(1, -1, NLOCS * NLOCS)
+    new_y = np.stack([new_y for _ in range(new_x.shape[0])], axis=0).reshape(
+        1, -1, NLOCS * NLOCS
+    )
 
     score_data = jax.tree.map(
         lambda a: jax.device_put(a),
-        [ locs[maxmin_ordering], nns, li, maxmin_ordering, new_x, new_y ],
+        [locs[maxmin_ordering], nns, li, maxmin_ordering, new_x, new_y],
     )
     score_data = Data(*score_data)
     # NOTE: Validation data uses a different instantiation method from training data
@@ -516,10 +547,10 @@ for i, (nu, lp) in enumerate(zip(nus, logprobs)):
     ax[i].set_title(f"$\\nu=${nu:.2f}")
     ax[i].set_xlabel("nu")
     ax[i].plot(np.exp(new_x.squeeze()), lp)
-    ax[i].axvline(x=nu, color=f'C{0}', linestyle='--')
+    ax[i].axvline(x=nu, color=f"C{0}", linestyle="--")
 
 fig.tight_layout()
-plt.show()
+show_fig()
 
 # %% [markdown]
 # In each subplot, the vertical line indicates the true value that a field was generated at.

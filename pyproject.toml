@@ -16,39 +16,46 @@ dependencies = [
     "numpy",
     "numpyro",
     "optax",
-    "seaborn",
     "tensorflow-probability",
     "tqdm",
     "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build"]
+build-backend = "uv_build"
 
-[tool.hatch]
-metadata.allow-direct-references = true
-
-# NOTE(djd): `veccs` in this table because it otherwise raises errors when
-# syncing the optional dependencies.
 [project.optional-dependencies]
 experiments = [
-    "blackjax",
-    "cartopy",
     "ipykernel",
-    "jupyter",
-    "nbconvert",
     "matplotlib",
+    "nbconvert",
     "pyside6",
 ]
 cuda = [
-    "blackjax",
-    "flax",
     "jax[cuda]==0.5",
-    "numpyro",
-    "optax",
-    "tensorflow-probability[jax]",
-    "veccs @ git+https://github.com/katzfuss-group/veccs.git@v0.0.2",
+]
+cuda12 = [
+    "jax[cuda12]==0.5",
+]
+cuda12-local = [
+    "jax[cuda12-local]==0.5",
+]
+cuda13 = [
+    "jax[cuda13]==0.5",
+]
+cuda13-local = [
+    "jax[cuda-local]==0.5",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel",
+    "jupytext>=1.17.1",
+    "matplotlib",
+    "nbconvert",
+    "pytest",
+    "ruff",
 ]
 
 [tool.basedpyright]
@@ -104,13 +111,3 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 docstring-code-format = false
 docstring-code-line-length = "dynamic"
-
-[dependency-groups]
-dev = [
-    "ruff",
-    "pytest",
-    "ipython",
-    "pytest>=9.0.3",
-    "jupytext>=1.17.1",
-    "pytest-benchmark>=5.2.3",
-]
